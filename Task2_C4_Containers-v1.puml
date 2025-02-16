@@ -1,0 +1,82 @@
+@startuml
+title "Тёплый дом" диаграмма контейнеров
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "A user of the system")
+
+System(WarmHouseSystem, "Warm House System", "device management, device data collection, payment")
+Container_Boundary(WarmHouseSystem, "Warm House System"){
+    Container(WebApp, "Web Application", "Java, Spring", "Handles user interactions")
+    Container(MobileApp, "Mobile Application", "Kotlin, Swift", "Allows users to control devices in their home. Receive data from devices")
+    Container(PaymentService, "Payment Service", "Node.js", "Processes payments")
+    Container(Database, "Database", "PostgreSQL", "Store user data, device data")
+}
+
+System_Ext(api, "External Devices")
+System_Ext(bank, "Bank System", "External bank for processing payments")
+System_Ext(notificationService, "Notification Service", "Provides users notificating")
+
+Rel(user, WebApp, "Uses the system")
+Rel(WebApp,PaymentService,"Processes payment requests")
+Rel(PaymentService,bank,"Processes payments")
+Rel(WebApp,Database,"Reads/Writes user data")
+Rel(MobileApp,Database,"Reads/Writes user data")
+Rel(WebApp,api,"Extracts device data")
+Rel(WebApp,notificationService,"Send message")
+
+@enduml
+
+
+Copy
+@startuml
+title "DataProcessor" диаграмма компонентов
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(DataProcessor, "Data Processor") {
+    Component(APIHandler, "API Handler", "Обрабатывает входящие HTTP-запросы")
+    Component(BusinessLogic, "Business Logic", "Содержит основную логику обработки данных")
+    Component(KafkaConsumer, "Kafka Consumer", "Читает данные из Kafka")
+    Component(KafkaProducer, "Kafka Producer", "Публикует данные в Kafka")
+    Component(Repository, "Repository", "Управляет доступом к данным в EventStore")
+    Component(EventStore, "EventStore", "Хранилище событий")
+}
+
+' Взаимодействия между компонентами
+Rel(APIHandler, BusinessLogic, "Передает данные для обработки")
+Rel(KafkaConsumer, BusinessLogic, "Передает данные из Kafka")
+Rel(BusinessLogic, KafkaProducer, "Публикует обработанные данные")
+Rel(BusinessLogic, Repository, "Сохраняет/извлекает данные")
+Rel(Repository, EventStore, "Сохраняет/извлекает события")
+
+' Внешние взаимодействия
+Rel(APIHandler, APIGateway, "Получает запросы")
+Rel(KafkaConsumer, Kafka, "Читает данные")
+Rel(KafkaProducer, Kafka, "Публикует данные")
+Rel(EventStore, AnalisticsService, "Предоставляет данные для анализа")
+
+@enduml
+
+@startuml
+title "UserInteraction" диаграмма компонентов
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Container_Boundary(UserInteraction, "User Interaction") {
+    Component(APIGateway, "API Gateway", "Обрабатывает входящие запросы")
+    Component(AuthService, "Auth Service", "Управляет аутентификацией и авторизацией")
+    Component(WebAppBackend, "Web App Backend", "Логика для веб-приложения")
+    Component(MobileAppBackend, "Mobile App Backend", "Логика для мобильного приложения")
+    Component(NotificationClient, "Notification Client", "Отправляет уведомления пользователям")
+}
+
+' Взаимодействия между компонентами
+Rel(APIGateway, AuthService, "Проверяет аутентификацию")
+Rel(APIGateway, WebAppBackend, "Обрабатывает запросы от веб-приложения")
+Rel(APIGateway, MobileAppBackend, "Обрабатывает запросы от мобильного приложения")
+Rel(WebAppBackend, NotificationClient, "Отправляет уведомления")
+Rel(MobileAppBackend, NotificationClient, "Отправляет уведомления")
+
+' Внешние взаимодействия
+Rel(APIGateway, Kafka, "Отправляет/получает данные")
+Rel(NotificationClient, NotificationService, "Отправляет уведомления")
+
+@enduml

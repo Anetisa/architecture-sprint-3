@@ -1,59 +1,80 @@
+
 @startuml
-title "Тёплый дом" диаграмма контейнеров
 !includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
 
-Person(user, "User", "A user of the system")
+title Контейнер "Обработка платежей" для системы умного дома
 
-Container(Devices, "Sensors and other devices") {
-    Component(TempSensor, "TemperatureSensor")
-    Component(Cameras, "Cameras")
-    Component(OtherSensors, "Other Sensors")
+Container_Boundary(PaymentProcessing, "Обработка платежей") {
+    Component(APIHandler, "API Handler", "Обрабатывает входящие HTTP-запросы")
+    Component(BusinessLogic, "Business Logic", "Основная логика обработки платежей")
+    Component(KafkaConsumer, "Kafka Consumer", "Читает запросы на оплату из Kafka")
+    Component(KafkaProducer, "Kafka Producer", "Публикует события оплаты в Kafka")
+    Component(PaymentRepository, "Payment Repository", "Управляет доступом к данным о платежах")
+    Component(PaymentGatewayClient, "Payment Gateway Client", "Интеграция с внешним платежным шлюзом")
+    Component(NotificationClient, "Notification Client", "Отправляет уведомления о статусе платежа")
+    ContainerDb(PaymentDB, "Payment Database", "Хранилище данных о платежах")
 }
 
-Container(Relay, "Relay and other devices") {
-    Component(TempRelay, "TemperatureRelay")
-    Component(Light, "LightRelay")
-    Component(OtherRelay, "Other Relay")
+' Внешние системы
+System_Ext(User, "Пользователь", "Инициирует оплату через мобильное приложение или веб-интерфейс")
+System_Ext(ExternalPaymentGateway, "Внешний платежный шлюз", "Обрабатывает платежи (например, Stripe, PayPal)")
+System_Ext(NotificationService, "Сервис уведомлений", "Отправляет уведомления пользователю")
+SystemQueue(PaymentRequests, "payment_requests", "Топик Kafka для запросов на оплату")
+SystemQueue(PaymentEvents, "payment_events", "Топик Kafka для событий оплаты")
+
+' Взаимодействия внутри контейнера
+Rel(APIHandler, BusinessLogic, "Передает запросы на оплату")
+Rel(KafkaConsumer, BusinessLogic, "Передает запросы из Kafka")
+Rel(BusinessLogic, PaymentRepository, "Сохраняет/извлекает данные о платежах")
+Rel(PaymentRepository, PaymentDB, "Сохраняет/извлекает данные")
+Rel(BusinessLogic, PaymentGatewayClient, "Выполняет оплату через внешний шлюз")
+Rel(BusinessLogic, KafkaProducer, "Публикует события оплаты")
+Rel(BusinessLogic, NotificationClient, "Отправляет уведомления")
+
+' Взаимодействия с внешними системами
+Rel(User, APIHandler, "Отправляет запрос на оплату")
+Rel(APIHandler, PaymentRequests, "Публикует запросы на оплату")
+Rel(PaymentRequests, KafkaConsumer, "Читает запросы")
+Rel(PaymentGatewayClient, ExternalPaymentGateway, "Выполняет платеж")
+Rel(KafkaProducer, PaymentEvents, "Публикует события оплаты")
+Rel(NotificationClient, NotificationService, "Отправляет уведомления")
+
+@enduml
+
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+title Контейнер "Управление светом" для системы умного дома
+
+Container_Boundary(LightControl, "Управление светом") {
+    Component(APIHandler, "API Handler", "Обрабатывает входящие HTTP-запросы")
+    Component(BusinessLogic, "Business Logic", "Основная логика управления светом")
+    Component(KafkaConsumer, "Kafka Consumer", "Читает команды из Kafka")
+    Component(KafkaProducer, "Kafka Producer", "Публикует события в Kafka")
+    Component(DeviceController, "Device Controller", "Управляет устройствами (светом)")
+    Component(NotificationClient, "Notification Client", "Отправляет уведомления о статусе света")
+    ContainerDb(LightStateDB, "Light State Database", "Хранилище состояния света")
 }
 
-Container(UserInteraction, "User Interaction") {
-    Component(APIGateway, "APIGateway", "Handles API requests")
-    Component(WebApp, "WebApp", "Web app for users")
-    Component(MobileApp, "Mobile App", "Web app for users")
-}
+' Внешние системы
+System_Ext(User, "Пользователь", "Инициирует команды через мобильное приложение или веб-интерфейс")
+System_Ext(NotificationService, "Сервис уведомлений", "Отправляет уведомления пользователю")
+SystemQueue(LightCommands, "light_commands", "Топик Kafka для команд управления светом")
+SystemQueue(LightEvents, "light_events", "Топик Kafka для событий состояния света")
 
-System(MessageBroker, "Message Broker")
-Container_Boundary(MessageBroker, "Message Broker"){
-    Container(Kafka, "Kafka", "Broker for handling messages")
-}
+' Взаимодействия внутри контейнера
+Rel(APIHandler, BusinessLogic, "Передает команды")
+Rel(KafkaConsumer, BusinessLogic, "Передает команды из Kafka")
+Rel(BusinessLogic, DeviceController, "Управляет устройствами")
+Rel(BusinessLogic, KafkaProducer, "Публикует события состояния света")
+Rel(BusinessLogic, NotificationClient, "Отправляет уведомления")
+Rel(DeviceController, LightStateDB, "Сохраняет/извлекает состояние света")
 
-Container(DataProcessor, "Data Processor") {
-    Component(DataProc, "Data Processor", "Processes incoming data ")
-    Component(EventStore, "EventStore", "Stores Events")
-}
-
-Container(NAA, "Notification and Analysis") {
-    Component(NotificationService, "Data Processor", "Sends Notifications ")
-    Component(AnalisticsService, "AnalisticsService", "")
-}
-
-Rel(TempSensor, Kafka, "Send data")
-Rel(Cameras, Kafka, "Send data")
-Rel(OtherSensors, Kafka, "Display data")
-Rel(APIGateway, MobileApp, "Display data")
-Rel(APIGateway, WebApp, "Display data")
-Rel(user, APIGateway, "Requests")
-Rel(APIGateway, Kafka,)
-Rel(Kafka, APIGateway,)
-Rel(Kafka, Light,)
-Rel(Kafka, TempRelay,)
-Rel(Kafka, OtherRelay,)
-Rel(DataProc, EventStore, "Save event")
-Rel(DataProc, Kafka,"Publish processed data")
-Rel(Kafka, DataProc, "")
-Rel(NotificationService, user, "")
-Rel(Kafka, NotificationService,"")
-Rel(AnalisticsService, EventStore, "")
-Rel(Kafka, AnalisticsService,"")
+' Взаимодействия с внешними системами
+Rel(User, APIHandler, "Отправляет команды")
+Rel(APIHandler, LightCommands, "Публикует команды")
+Rel(LightCommands, KafkaConsumer, "Читает команды")
+Rel(KafkaProducer, LightEvents, "Публикует события")
+Rel(NotificationClient, NotificationService, "Отправляет уведомления")
 
 @enduml
