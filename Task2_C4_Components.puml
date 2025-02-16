@@ -17,7 +17,7 @@ Container_Boundary(PaymentProcessing, "Обработка платежей") {
 
 ' Внешние системы
 System_Ext(User, "Пользователь", "Инициирует оплату через мобильное приложение или веб-интерфейс")
-System_Ext(ExternalPaymentGateway, "Внешний платежный шлюз", "Обрабатывает платежи (например, Stripe, PayPal)")
+System_Ext(ExternalPaymentGateway, "Внешний платежный шлюз", "Обрабатывает платежи")
 System_Ext(NotificationService, "Сервис уведомлений", "Отправляет уведомления пользователю")
 SystemQueue(PaymentRequests, "payment_requests", "Топик Kafka для запросов на оплату")
 SystemQueue(PaymentEvents, "payment_events", "Топик Kafka для событий оплаты")
